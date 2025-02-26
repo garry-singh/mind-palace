@@ -3,27 +3,28 @@
 import { SignInButton, UserButton } from "@clerk/nextjs";
 import { Authenticated, Unauthenticated } from "convex/react";
 import Link from "next/link";
+import { ModeToggle } from "./ModeToggle";
 
 function Header() {
   return (
-    <div className="border-b">
-      <div className="flex flex-row items-center gap-4 p-4">
-        <div className="flex items-center justify-between w-full lg:w-auto">
-          <Link href="/" className="font-bold shrink-0">
-            LOGO
-          </Link>
-        </div>
+    <div className="border-b bg-background">
+      <div className="flex items-center justify-between p-4">
+        {/* Left - Logo */}
+        <Link href="/" className="font-bold text-lg">
+          LOGO
+        </Link>
 
-        <div className="lg:block ml-auto">
+        {/* Right - Auth & Mode Toggle */}
+        <div className="flex items-center gap-4">
+          <ModeToggle />
+
           <Authenticated>
-            <div className="flex items-center gap-3">
-              <UserButton />
-            </div>
+            <UserButton />
           </Authenticated>
 
           <Unauthenticated>
             <SignInButton mode="modal">
-              <button className="bg-gray-100 text-gray-800 min-w-24 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-200 transition border border-gray-300">
+              <button className="bg-black text-white dark:bg-white dark:text-black text-foreground px-4 py-2 rounded-lg text-sm border border-transparent dark:border-black hover:opacity-80 transition">
                 Sign In
               </button>
             </SignInButton>

@@ -18,6 +18,7 @@ function SyncUserWithConvex() {
           userId: user.id,
           name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
           email: user.emailAddresses[0]?.emailAddress ?? "",
+          lastLoginAt: Date.now(),
         });
       } catch (error) {
         console.log("Error syncing user: ", error);

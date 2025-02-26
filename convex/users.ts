@@ -6,8 +6,11 @@ export const updateUser = mutation({
     userId: v.string(),
     name: v.string(),
     email: v.string(),
+    lastLoginAt: v.number(),
   },
   handler: async (ctx, { userId, name, email }) => {
+    const loginTimestamp = Date.now();
+
     // Check if user exists
     const existingUser = await ctx.db
       .query("users")
@@ -19,6 +22,7 @@ export const updateUser = mutation({
       await ctx.db.patch(existingUser._id, {
         name,
         email,
+        lastLoginAt: loginTimestamp,
       });
       return existingUser._id;
     }
@@ -28,6 +32,7 @@ export const updateUser = mutation({
       userId,
       name,
       email,
+      lastLoginAt: loginTimestamp,
     });
 
     return newUserId;
