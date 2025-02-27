@@ -1,52 +1,85 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { v, Validator } from "convex/values";
+import { internalMutation, query, QueryCtx } from "./_generated/server";
+import { UserJSON } from '@clerk/backend';
 
-export const updateUser = mutation({
-  args: {
-    userId: v.string(),
-    name: v.string(),
-    email: v.string(),
-    lastLoginAt: v.number(),
-  },
-  handler: async (ctx, { userId, name, email }) => {
-    const loginTimestamp = Date.now();
-
-    // Check if user exists
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_user_id", (q) => q.eq("userId", userId))
-      .first();
-
-    if (existingUser) {
-      // Update existing user
-      await ctx.db.patch(existingUser._id, {
-        name,
-        email,
-        lastLoginAt: loginTimestamp,
-      });
-      return existingUser._id;
+export const getUsers = query({
+    args: {},
+    handler: async ctx => {
+        return await ctx.db.query('users').collect()
     }
+})
 
-    // Create new user
-    const newUserId = await ctx.db.insert("users", {
-      userId,
-      name,
-      email,
-      lastLoginAt: loginTimestamp,
-    });
-
-    return newUserId;
-  },
+export const getRecentUsers = query({
+    args: {},
+    handler: async ctx => {
+        return await ctx.db.query('users')
+            .withIndex('by_last_login')
+            .order('desc')
+            .take(10);
+    }
 });
 
-export const getUserById = query({
-  args: { userId: v.string() },
-  handler: async (ctx, { userId }) => {
-    const user = await ctx.db
+export const current = query({
+    args: {},
+    handler: async ctx => {
+        return await getCurrentUser(ctx)
+    }
+})
+
+export const upsertFromClerk = internalMutation({
+    args: { data: v.any() as Validator<UserJSON> },
+    async handler(ctx, { data }) {
+        const userAttributes = {
+            email: data.email_addresses[0].email_address,
+            clerkUserId: data.id,
+            firstName: data.first_name ?? undefined,
+            lastName: data.last_name ?? undefined,
+            imageUrl: data.image_url ?? undefined,
+            name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+            lastLoginAt: Date.now()
+        }
+
+        const user = await userByClerkUserId(ctx, data.id);
+        if (user === null) {
+            await ctx.db.insert("users", userAttributes);
+          } else {
+            await ctx.db.patch(user._id, userAttributes);
+          }
+    }
+})
+
+export const deleteFromClerk = internalMutation({
+    args: { clerkUserId: v.string() },
+    async handler(ctx, { clerkUserId }) {
+      const user = await userByClerkUserId(ctx, clerkUserId);
+  
+      if (user !== null) {
+        await ctx.db.delete(user._id);
+      } else {
+        console.warn(
+          `Can't delete user, there is none for Clerk user ID: ${clerkUserId}`,
+        );
+      }
+    },
+  });
+  
+  export async function getCurrentUserOrThrow(ctx: QueryCtx) {
+    const userRecord = await getCurrentUser(ctx);
+    if (!userRecord) throw new Error("Can't get current user");
+    return userRecord;
+  }
+  
+  export async function getCurrentUser(ctx: QueryCtx) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      return null;
+    }
+    return await userByClerkUserId(ctx, identity.subject);
+  }
+  
+  async function userByClerkUserId(ctx: QueryCtx, clerkUserId: string) {
+    return await ctx.db
       .query("users")
-      .withIndex("by_user_id", (q) => q.eq("userId", userId))
-      .first();
-
-    return user;
-  },
-});
+      .withIndex("byClerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
+      .unique();
+  }

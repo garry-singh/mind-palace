@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import SyncUserWithConvex from "@/components/SyncUserWithConvex";
 import Header from "@/components/Header";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -44,7 +43,6 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               <Header />
-              <SyncUserWithConvex />
               {children}
             </ThemeProvider>
           </ConvexClientProvider>
