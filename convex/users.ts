@@ -34,9 +34,10 @@ export const upsertFromClerk = internalMutation({
             clerkUserId: data.id,
             firstName: data.first_name ?? undefined,
             lastName: data.last_name ?? undefined,
-            imageUrl: data.image_url ?? undefined,
+            imageUrl: data.image_url ?? "",
             name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
-            lastLoginAt: Date.now()
+            lastLoginAt: Date.now(),
+            username: data.username ?? "",
         }
 
         const user = await userByClerkUserId(ctx, data.id);
@@ -77,7 +78,7 @@ export const deleteFromClerk = internalMutation({
     return await userByClerkUserId(ctx, identity.subject);
   }
   
-  async function userByClerkUserId(ctx: QueryCtx, clerkUserId: string) {
+  export async function userByClerkUserId(ctx: QueryCtx, clerkUserId: string) {
     return await ctx.db
       .query("users")
       .withIndex("byClerkUserId", (q) => q.eq("clerkUserId", clerkUserId))
